@@ -4,8 +4,6 @@ import time, signal
 from bs4 import BeautifulSoup
 
 INTERVAL_TIME_SECONDS = 600 # 10 min
-PAGE_START = 1
-PAGE_END = 100 #docelowo 1000
 
 def main():
     signal.signal(signal.SIGTERM, programTermination)
@@ -18,7 +16,7 @@ def main():
         try:
             print("Starting data collection")
             start = time.time()
-            get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', pages = range(PAGE_START, PAGE_END+1), db=movies)
+            get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', db=movies)
             end = time.time()
             print("Finishing data collection")
             print("Elapsed time",end-start)
@@ -70,16 +68,19 @@ def saveData(data, db):
 def checkIfFilmExist(id, name, db):
     return True if db.count_documents({'filmweb-id': id, 'name': name}) > 0 else False
 
-def get_data(url, pages, db):
+def get_data(url, db):
+    page=1
     collected = 0
     new = 0
-    print("Collecting page:", pages[0], "/", pages[-1], end='')
-    for page in pages:
+    while True:
         r = requests.get(url+'&page='+str(page))
-        print("\rCollecting page:", page, '/', pages[-1], end='')
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
             films = soup.find_all("div", class_="filmPreviewHolder")
+
+            if not films: # nie znaleziono filmów => koniec
+                print("\nCollected", collected, "films.", new, "new.")
+                return
 
             for film in films:
                 data = extractData(film)
@@ -88,10 +89,11 @@ def get_data(url, pages, db):
                     new += 1
                 collected += 1
         else:
-            print(r.headers)
-            break
-    print()
-    print("Collected", collected, "films.", new, "new.")
+            print("Request error")
+            return
+        print("\rCollected pages:", page, end='')
+        page += 1
+
 
 def extractData(film):
     id = film.find("div", class_="poster--auto")["data-film-id"].strip()
