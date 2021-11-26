@@ -24,7 +24,6 @@ def main():
                 get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=true', db=movies, db2=movies_remote)
                 print("Collecting by: "+orderBy+", ascending")
                 get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=false', db=movies, db2=movies_remote)
-                print("Collecting by: rate, descending")
             end = time.time()
             print("Finishing data collection")
             print("Elapsed time",end-start)
