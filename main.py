@@ -2,22 +2,23 @@ import pymongo
 import requests
 import time, signal
 from bs4 import BeautifulSoup
-
+# zmienna okreslajaca czas do kolejnego wykonania programu
 INTERVAL_TIME_SECONDS = 60*60*24 # 1 raz dziennie
-
+# glowna funkcja programu
 def main():
     signal.signal(signal.SIGTERM, programTermination)
     signal.signal(signal.SIGINT, programTermination)
-
+# inicjowanie baz danych, lokalnej i zdalnej
     db = initMongo("mongodb://minadzd:minadzd@localhost:27017/admin")
     db_remote = initMongo("mongodb+srv://user:pRSb39SB3Y5vxRz@cluster0.oezfn.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     movies = db['movies']
     movies_remote = db_remote['movies']
-
+# glowna petla programu
     while True:
         try:
             print("Starting data collection")
             start = time.time()
+            # pobranie danych z podanej strony
             get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', db=movies, db2=movies_remote)
             end = time.time()
             print("Finishing data collection")
@@ -27,7 +28,7 @@ def main():
         except Termination:
             print("\nProgram terminated.")
             break
-
+# funkcja inicjujaca polaczenie z mongoDB
 def initMongo(url):
     try:
         client = pymongo.MongoClient(url)
@@ -38,7 +39,7 @@ def initMongo(url):
     except:
         print("Database connection error")
         exit()
-
+# funkcja zapisujaca dane do bazy danych
 def saveData(data, db):
     movie = {
         'filmweb-id': data['id'],
@@ -66,16 +67,18 @@ def saveData(data, db):
     except:
         print("Movie insertion error")
         exit()
-
+# funkcja sprawdzajaca czy w bazie danych znajduje sie juz serial o danym id i nazwie
 def checkIfFilmExist(id, name, db):
     return True if db.count_documents({'filmweb-id': id, 'name': name}) > 0 else False
-
+# funkcja pobierajaca dane z podanej strony
 def get_data(url, db, db2):
     page=1
     collected = 0
     new = 0
     while True:
+        # polaczenie z podana strona
         r = requests.get(url+'&page='+str(page))
+        # sprawdzenie statusu polaczenia, jezeli 200 to wykonujemy ekstrakcje danych
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
             films = soup.find_all("div", class_="filmPreviewHolder")
@@ -85,11 +88,18 @@ def get_data(url, db, db2):
                 return
 
             for film in films:
+                # wydobycie z drzewa DOM danych dotyczacych serialu
                 data = extractData(film)
+                # sprawdzenie czy serial o danym id lub nazwie juz jest w bazie danych
+                # jesli tak to nie zapisujemy go ponownie
                 if not checkIfFilmExist(data['id'], data['name'], db):
+                    # zapis danych do bazy danych
                     saveData(data, db)
                     new += 1
+                # sprawdzenie czy serial o danym id lub nazwie juz jest w bazie danych
+                # jesli tak to nie zapisujemy go ponownie (baza zdalna)
                 if not checkIfFilmExist(data['id'], data['name'], db2):
+                    # zapis danych do bazy danych
                     saveData(data, db2)
                 collected += 1
         else:
@@ -98,7 +108,8 @@ def get_data(url, db, db2):
         print("\rCollected pages:", page, end='')
         page += 1
 
-
+# funkcja odpowiedzialna za przypisanie pobranych danych do konkretnych zmiennych
+# nastepnie zwraca nowy obiekt z tymi danymi
 def extractData(film):
     id = film.find("div", class_="poster--auto")["data-film-id"].strip()
     name = film.find("h2", class_="filmPreview__title").text.strip()
