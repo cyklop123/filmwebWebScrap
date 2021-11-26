@@ -3,20 +3,22 @@ import requests
 import time, signal
 from bs4 import BeautifulSoup
 
-INTERVAL_TIME_SECONDS = 600 # 10 min
+INTERVAL_TIME_SECONDS = 60*60*24 # 1 raz dziennie
 
 def main():
     signal.signal(signal.SIGTERM, programTermination)
     signal.signal(signal.SIGINT, programTermination)
 
-    db = initMongo()
+    db = initMongo("mongodb://minadzd:minadzd@localhost:27017/admin")
+    db_remote = initMongo("mongodb+srv://user:pRSb39SB3Y5vxRz@cluster0.oezfn.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     movies = db['movies']
+    movies_remote = db_remote['movies']
 
     while True:
         try:
             print("Starting data collection")
             start = time.time()
-            get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', db=movies)
+            get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', db=movies, db2=movies_remote)
             end = time.time()
             print("Finishing data collection")
             print("Elapsed time",end-start)
@@ -26,12 +28,12 @@ def main():
             print("\nProgram terminated.")
             break
 
-def initMongo():
+def initMongo(url):
     try:
-        client = pymongo.MongoClient("mongodb://minadzd:minadzd@localhost:27017/filmweb")
+        client = pymongo.MongoClient(url)
         db = client['filmweb']
         db.list_collection_names()
-        print("Database connection established")
+        print("Database connection established:",url)
         return db
     except:
         print("Database connection error")
@@ -68,7 +70,7 @@ def saveData(data, db):
 def checkIfFilmExist(id, name, db):
     return True if db.count_documents({'filmweb-id': id, 'name': name}) > 0 else False
 
-def get_data(url, db):
+def get_data(url, db, db2):
     page=1
     collected = 0
     new = 0
@@ -87,6 +89,8 @@ def get_data(url, db):
                 if not checkIfFilmExist(data['id'], data['name'], db):
                     saveData(data, db)
                     new += 1
+                if not checkIfFilmExist(data['id'], data['name'], db2):
+                    saveData(data, db2)
                 collected += 1
         else:
             print("Request error")
