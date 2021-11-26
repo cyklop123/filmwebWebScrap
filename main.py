@@ -20,10 +20,10 @@ def main():
             start = time.time()
             # pobranie danych z podanej strony
             for orderBy in ["rate", "count", "year", "w2s", "popularity"]: # uwzględnienie wszystkich możliwych opcji
-                print("Collecting by: "+orderBy+", descending")
-                get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=true', db=movies, db2=movies_remote)
                 print("Collecting by: "+orderBy+", ascending")
                 get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=false', db=movies, db2=movies_remote)
+                print("Collecting by: "+orderBy+", descending")
+                get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=true', db=movies, db2=movies_remote)
             end = time.time()
             print("Finishing data collection")
             print("Elapsed time",end-start)
@@ -93,6 +93,8 @@ def get_data(url, db, db2):
 
             for film in films:
                 # wydobycie z drzewa DOM danych dotyczacych serialu
+                if film.find("div", class_= "errorPage"):
+                    continue
                 data = extractData(film)
                 # sprawdzenie czy serial o danym id lub nazwie juz jest w bazie danych
                 # jesli tak to nie zapisujemy go ponownie
