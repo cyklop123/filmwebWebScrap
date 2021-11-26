@@ -19,7 +19,12 @@ def main():
             print("Starting data collection")
             start = time.time()
             # pobranie danych z podanej strony
-            get_data(url = 'https://www.filmweb.pl/serials/search?orderBy=rate&descending=true', db=movies, db2=movies_remote)
+            for orderBy in ["rate", "count", "year", "w2s", "popularity"]: # uwzględnienie wszystkich możliwych opcji
+                print("Collecting by: "+orderBy+", descending")
+                get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=true', db=movies, db2=movies_remote)
+                print("Collecting by: "+orderBy+", ascending")
+                get_data(url = 'https://www.filmweb.pl/serials/search?orderBy='+orderBy+'&descending=false', db=movies, db2=movies_remote)
+                print("Collecting by: rate, descending")
             end = time.time()
             print("Finishing data collection")
             print("Elapsed time",end-start)
