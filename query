@@ -1,0 +1,88 @@
+// średnie i odchylenia
+db.movies.aggregate([
+    {
+        $addFields: {
+            durationDouble: {$toDouble: "$episodeDuration"},
+            rateDouble: {$toDouble: "$rate"},
+            rateCountDouble: {$toDouble: "$rateCount"},
+            wantToSeeDouble: {$toDouble: "$wantToSee"},
+            yearDouble: {$toDouble: "$year"}
+        }
+    },
+    {
+        $group:
+        {
+            _id: null,
+            srednia_rate: { $avg: "$rateDouble" },
+            odchylenie_rate: { $stdDevPop: "$rateDouble" },
+            srednia_duration: { $avg: "$durationDouble" },
+            odchylenie_duration: { $stdDevPop: "$durationDouble" },
+            srednia_rateCount: { $avg: "$rateCountDouble" },
+            odchylenie_rateCount: { $stdDevPop: "$rateCountDouble" },
+            srednia_wantToSee: { $avg: "$wantToSeeDouble" },
+            odchylenie_wantToSee: { $stdDevPop: "$wantToSeeDouble" },
+            srednia_year: { $avg: "$yearDouble" },
+            odchylenie_year: { $stdDevPop: "$yearDouble" }
+        }
+    },
+    {
+        $project: {_id:0}
+    }
+])
+
+// gatunek z najwiekszym w2s
+db.movies.aggregate([
+    {
+        $unwind: "$genres"
+    },
+    {
+        $group:
+        {
+            _id: "$genres",
+            w2sSum: {$sum: {$toDouble: "$wantToSee"}}
+        }
+    },
+    {
+        $sort: {w2sSum: -1}
+    },
+    {
+        $limit: 1
+    }
+])
+
+// średnia liczba filmów dla aktora
+
+
+db.movies.aggregate([
+    {
+        $group:
+        {
+            _id: "$year",
+            srednia_dlugosc_odcinka: {
+                $avg: { $toInt: "$episodeDuration" }
+            },
+            odchylenie_standardowe_dlugosci_odcinka: {
+                $stdDevPop: { $toInt: "$episodeDuration" }
+            },
+            ilosc_seriali: { $count: {} }
+        }
+    },
+    {
+    $project:
+        {
+            _id: 0,
+            rok: "$_id",
+            srednia_dlugosc_odcinka: {
+                $ifNull: ["$srednia_dlugosc_odcinka", "brak danych"]
+            },
+            odchylenie_standardowe_dlugosci_odcinka: {
+                $ifNull: ["$odchylenie_standardowe_dlugosci_odcinka", "brak danych"]
+            },
+            ilosc_seriali: 1
+        }
+    },
+    {
+        $sort: {rok: 1}
+    }
+])
+
