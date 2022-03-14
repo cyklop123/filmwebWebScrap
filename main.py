@@ -9,8 +9,8 @@ def main():
     signal.signal(signal.SIGTERM, programTermination)
     signal.signal(signal.SIGINT, programTermination)
 # inicjowanie baz danych, lokalnej i zdalnej
-    db = initMongo("mongodb://minadzd:minadzd@localhost:27017/admin")
-    db_remote = initMongo("mongodb+srv://user:pRSb39SB3Y5vxRz@cluster0.oezfn.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+    db = initMongo("")
+    db_remote = initMongo("")
     movies = db['movies']
     movies_remote = db_remote['movies']
 # glowna petla programu
